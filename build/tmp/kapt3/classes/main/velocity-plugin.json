@@ -1,0 +1,1 @@
+{"id":"velocityqueue","name":"Velocity Queue","version":"1.0.0-SNAPSHOT","authors":["McMackety"],"dependencies":[],"main":"org.mcmackety.vqueue.QueuePlugin"}

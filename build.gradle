@@ -1,0 +1,45 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.4.20'
+    id "org.jetbrains.kotlin.kapt" version "1.4.20"
+
+}
+
+group 'org.mcmackety'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+kapt.includeCompileClasspath = false
+
+repositories {
+    jcenter()
+
+    maven {
+        name 'velocity'
+        url 'https://repo.velocitypowered.com/snapshots/'
+    }
+}
+
+dependencies {
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    implementation 'com.velocitypowered:velocity-api:1.1.2'
+    kapt 'com.velocitypowered:velocity-api:1.1.2'
+
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.11.+"
+
+    implementation "org.jetbrains.kotlin:kotlin-reflect:1.4.20"
+
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.9"
+
+    implementation 'net.kyori:adventure-text-minimessage:4.0.0-SNAPSHOT'
+
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget= 1.8
+}
+
+jar {
+    from {
+        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
+    }
+}
