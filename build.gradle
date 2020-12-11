@@ -1,7 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.20'
     id "org.jetbrains.kotlin.kapt" version "1.4.20"
-
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 group 'org.mcmackety'
@@ -34,12 +34,13 @@ dependencies {
 
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget= 1.8
+shadowJar {
+    minimize()
+    dependencies {
+        exclude(dependency('com.velocitypowered:velocity-api:.*'))
+    }
 }
 
-jar {
-    from {
-        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
-    }
+compileKotlin {
+    kotlinOptions.jvmTarget= 1.8
 }

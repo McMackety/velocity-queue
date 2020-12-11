@@ -12,7 +12,11 @@ data class Settings(
     @JsonPropertyDescription("These are the settings for the JoinQueue feature. This allows for players to join a limbo when the hub/main server is full.")
     val joinQueue: JoinQueue = JoinQueue(),
     @JsonPropertyDescription("These are the settings for the IntraServerQueue feature. This allows for the admin to rate limit switching servers and queue for full servers.")
-    val intraServerQueue: IntraServerQueue = IntraServerQueue()
+    val intraServerQueue: IntraServerQueue = IntraServerQueue(),
+    @JsonPropertyDescription("The message sent when you left a queue.")
+    val leftQueueMessage: String = "",
+    @JsonPropertyDescription("The message sent when you joined the server.")
+    val notInQueueMessage: String = ""
 )
 
 data class Server(
