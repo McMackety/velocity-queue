@@ -1,11 +1,11 @@
-# Velocity Queue Plugin
-This is a relatively simple queue plugin for Velocity. It contains two seperate types of queues, a join queue and a intra-server queue.  
+# Velocity Queue
+This is a relatively simple queue plugin for Velocity. It contains two separate types of queues, a join queue, and an intra-server queue.  
 
 The join queue sends players to a limbo server if the initial server is full, they then are sent to the main server when there is room available.
 
-The intra-server queue queues players when they switch servers, it can be used to prevent mass amount of people joining at once.
+The intra-server queue queues players when they switch servers, it can be used to prevent a mass amount of people from joining at once.
 
-All messages use the [Minimessage](https://docs.adventure.kyori.net/minimessage.html#format) format, so read that documentation for information on that message format. Additionally, any `oneLessPlayerInQueueMessage` messages have the `<index></index>` value which contains the number of players in-front of the player. For example, if there are 3 people in-front of your `Hello <index></index>` will output as `Hello 3`.
+All messages use the [Minimessage](https://docs.adventure.kyori.net/minimessage.html#format) format, so read that documentation for information on that message format. Additionally, any `oneLessPlayerInQueueMessage` messages have the `<index></index>` value which contains the number of players in front of the player. For example, if there are 3 people in front of your `Hello <index></index>` will output as `Hello 3`.
 
 # Annotated Config
 ```yaml
