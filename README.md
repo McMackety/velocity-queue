@@ -15,20 +15,24 @@ Additionally, there are two placeholders available in messages:
 ```yaml
 ---
 settings:
-  limboServers: # This is a yaml list of limbo servers, this is used by the joinQueue feature.
-  - name: "limbo" # The name of the limbo server as registered in velocity.
-    maxPlayers: 100 # The maximum number of players that can join the limbo server.
-  joinQueue: # Queues players when the lobby server becomes full.
-    enabled: true # Enables the feature.
-    joinedQueueMessage: "<yellow>Hello <blue><playerName></yellow>!1" # This is the message sent when a player joins the queue.
-    oneLessPlayerInQueueMessage: "<yellow>Hello <blue<index></yellow>!2" # Sent when a player leaves the queue.
-    lastPlayerInQueueMessage: "<yellow>Hello <blue><playerName></yellow>!3" # Sent when a player is the next in the queue.
-    joinedServerMessage: "<yellow>Hello <blue><playerName></yellow>!4" # Sent when the player is sent to the server from the queue.
-  intraServerQueue: # Queue players as they join another server in the velocity network.
-    enabled: true # Enables the feature.
-    queuedServers: ["test"] # A list of the servers that will be queued when someone joins. (Use names in velocity config.)
-    joinedQueueMessage: "<yellow>Hello <blue><playerName></yellow>!1" # This is the message sent when a player joins the queue.
-    oneLessPlayerInQueueMessage: "<yellow>Hello <blue><index></yellow>!2" # Sent when a player leaves the queue.
-    lastPlayerInQueueMessage: "<yellow>Hello <blue><playerName></yellow>!3" # Sent when a player is the next in the queue.
-    joinedServerMessage: "<yellow>Hello <blue><playerName></yellow>!4" # Sent when the player is sent to the server from the queue.
+  limboServers:
+  - name: "limbo"
+    maxPlayers: 100
+  joinQueue:
+    enabled: true
+    joinedQueueMessage: "<green>You have joined the queue!</green>"
+    oneLessPlayerInQueueMessage: "<green>Position in Queue:</green> <yellow><bold><index></bold></yellow>"
+    lastPlayerInQueueMessage: "<green>You are up next in the queue!</green>"
+    joinedServerMessage: "<green>You have now joined the server!</green>"
+  intraServerQueue:
+    enabled: true
+    queuedServers:
+    - "s2"
+    millisecondsPerPlayer: 5000
+    joinedQueueMessage: "<green>You have joined the queue!</green>"
+    oneLessPlayerInQueueMessage: "<green>Position in Queue:</green> <yellow><bold><index></bold></yellow>"
+    lastPlayerInQueueMessage: "<green>You are up next in the queue!</green>"
+    joinedServerMessage: "<green>You have now joined the server!</green>"
+  leftQueueMessage: "<green>You have now left the queue!</green>"
+  notInQueueMessage: "<green>You are not currently in a queue!</green>"
 ```
