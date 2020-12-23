@@ -43,10 +43,12 @@ class Queue {
         for (player in players) {
             QueuePlugin.proxyServer.getPlayer(player.uuid).ifPresent { proxyPlayer ->
                 val index = players.indexOf(player)
+                val nameTemplate = Template.of("playerName", proxyPlayer.username)
                 if (index > 0) {
-                    proxyPlayer.sendMessage(MiniMessage.get().parse(inQueue, Template.of("index", players.indexOf(player).toString())))
+                    val indexTemplate = Template.of("index", (players.indexOf(player) + 1).toString())
+                    proxyPlayer.sendMessage(MiniMessage.get().parse(inQueue, nameTemplate, indexTemplate))
                 } else if (index == 0) {
-                    proxyPlayer.sendMessage(MiniMessage.get().parse(nextInQueue))
+                    proxyPlayer.sendMessage(MiniMessage.get().parse(nextInQueue, nameTemplate))
                 }
             }
         }

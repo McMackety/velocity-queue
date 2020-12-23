@@ -14,6 +14,7 @@ import com.velocitypowered.api.proxy.ProxyServer
 import com.velocitypowered.api.proxy.server.RegisteredServer
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.minimessage.Template
 import org.mcmackety.vqueue.config.QueueConfig
 import org.mcmackety.vqueue.config.YAMLParse
 import org.slf4j.Logger
@@ -64,6 +65,8 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
             config = QueueConfig()
             YAMLParse.writeFile(dataDirectory, "config.yaml", config)
         }
+
+        proxyServer.commandManager.register("leavequeue", LeaveQueue(this), "lq")
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -93,7 +96,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                     )
                     queuePlayer.ifPresent { player ->
                         playerToQueue.remove(player)
-                        player.sendMessage(MiniMessage.get().parse(config.settings.joinQueue.joinedServerMessage))
+                        player.sendMessage(MiniMessage.get().parse(config.settings.joinQueue.joinedServerMessage, Template.of("playerName", player.username)))
                         player.createConnectionRequest(next.server).fireAndForget()
                     }
                 }
@@ -119,7 +122,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                         val server = proxyServer.getServer(limbo.name)
                         if (server.isPresent) {
                             event.player.sendMessage(
-                                MiniMessage.get().parse(config.settings.joinQueue.joinedQueueMessage)
+                                MiniMessage.get().parse(config.settings.joinQueue.joinedQueueMessage, Template.of("playerName", event.player.username))
                             )
                             joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer))
                             playerToQueue[event.player] = joinQueue
@@ -155,7 +158,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                 queue.add(QueuePlayer(event.player.uniqueId, server))
                 playerToQueue[event.player] = queue
                 event.player.sendMessage(
-                    MiniMessage.get().parse(config.settings.intraServerQueue.joinedQueueMessage)
+                    MiniMessage.get().parse(config.settings.intraServerQueue.joinedQueueMessage, Template.of("playerName", event.player.username))
                 )
                 event.result = ServerPreConnectEvent.ServerResult.denied()
             }
@@ -205,7 +208,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                         queuePlayer.ifPresent { player ->
                             playerToQueue.remove(player)
                             player.sendMessage(
-                                MiniMessage.get().parse(config.settings.intraServerQueue.joinedServerMessage)
+                                MiniMessage.get().parse(config.settings.intraServerQueue.joinedServerMessage, Template.of("playerName", player.username))
                             )
                             playerToServerToSwitch[player] = server
                             player.createConnectionRequest(next.server).fireAndForget()
@@ -218,7 +221,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
     }
 
     private fun isQueuedServer(resultServer: ServerPreConnectEvent.ServerResult): Boolean {
-        if (resultServer.server.isEmpty) return false
+        if (!resultServer.server.isPresent) return false
         for (server in config.settings.intraServerQueue.queuedServers) {
             if (server == resultServer.server.get().serverInfo.name) {
                 return true
