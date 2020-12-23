@@ -10,6 +10,7 @@ All messages use the [Minimessage](https://docs.adventure.kyori.net/minimessage.
 Additionally, there are two placeholders available in messages:
 * `<playerName>` | This is the name of the player this message is being sent to. (Available in **all** messages.)
 * `<index>` | The current position of the player in the queue. (Only available in `oneLessPlayerInQueueMessage` messages.)
+* `<destServer>` | The name of the server the player is switching to.
 
 # Annotated Config
 ```yaml
