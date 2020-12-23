@@ -16,7 +16,9 @@ data class Settings(
     @JsonPropertyDescription("The message sent when you left a queue.")
     val leftQueueMessage: String = "",
     @JsonPropertyDescription("The message sent when you joined the server.")
-    val notInQueueMessage: String = ""
+    val notInQueueMessage: String = "",
+    @JsonPropertyDescription("The backend for the queue.")
+    val queueBackend: String = "local"
 )
 
 data class Server(
