@@ -121,7 +121,8 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                     return@ifPresent
                 }
                 if (serverToMaxPlayers[initialServer]!! <= initialServer.playersConnected.size) {
-                    for (limbo in config.settings.limboServers) {
+                    if (config.settings.limboServers.isNotEmpty()) {
+                        val limbo = config.settings.limboServers.shuffled().take(1)[0] // Take a random limboServer, this should work for load balancing for now.
                         val server = proxyServer.getServer(limbo.name)
                         if (server.isPresent) {
                             event.player.sendMessage(
