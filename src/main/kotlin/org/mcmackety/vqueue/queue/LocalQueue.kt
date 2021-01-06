@@ -7,7 +7,7 @@ import org.mcmackety.vqueue.QueuePlugin
 import java.util.*
 
 
-abstract class LocalQueue : Queue {
+class LocalQueue : Queue {
     private val players: MutableList<QueuePlayer> = mutableListOf()
 
     override fun add(uuid: QueuePlayer) {

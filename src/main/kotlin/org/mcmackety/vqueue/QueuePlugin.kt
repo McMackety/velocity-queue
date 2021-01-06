@@ -110,6 +110,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
     fun onPlayerChooseInitialServer(event: PlayerChooseInitialServerEvent) {
         if (config.settings.joinQueue.enabled) {
             event.initialServer.ifPresent { initialServer ->
+                if (event.player.hasPermission("velocity_queue.skip_join_queue")) return@ifPresent
                 if (playerToQueue.containsKey(event.player)) {
                     playerToQueue[event.player]!!.removeUUID(event.player.uniqueId)
                     playerToQueue.remove(event.player)
@@ -142,6 +143,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
     @Subscribe
     fun onPlayerSwitchServer(event: ServerPreConnectEvent) {
         if (config.settings.intraServerQueue.enabled) {
+            if (event.player.hasPermission("velocity_queue.skip_intra_queue")) return
             if (playerToServerToSwitch.containsKey(event.player)) {
                 if (playerToServerToSwitch[event.player]!! == event.originalServer) {
                     playerToServerToSwitch.remove(event.player)
