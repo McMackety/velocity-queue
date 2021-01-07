@@ -38,7 +38,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
     }
 
     private var serverToMaxPlayers: MutableMap<RegisteredServer, Int> = mutableMapOf()
-    private var joinQueue: Queue = createQueue()
+    private var joinQueue: Queue
     private var serverToQueue: MutableMap<RegisteredServer, Queue> = mutableMapOf()
     private var playerToServerToSwitch: MutableMap<Player, RegisteredServer> = mutableMapOf()
     private var playerToQueue: MutableMap<Player, Queue> = mutableMapOf()
@@ -66,6 +66,8 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
             config = QueueConfig()
             YAMLParse.writeFile(dataDirectory, "config.yaml", config)
         }
+
+        joinQueue = createQueue()
 
         proxyServer.commandManager.register("leavequeue", LeaveQueue(this), "lq")
     }
