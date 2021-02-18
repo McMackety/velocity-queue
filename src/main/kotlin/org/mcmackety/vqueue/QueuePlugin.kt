@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
 import com.google.inject.Inject
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
+import com.velocitypowered.api.event.player.KickedFromServerEvent
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent
 import com.velocitypowered.api.event.player.ServerPreConnectEvent
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
@@ -42,6 +43,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
     private var serverToQueue: MutableMap<RegisteredServer, Queue> = mutableMapOf()
     private var playerToServerToSwitch: MutableMap<Player, RegisteredServer> = mutableMapOf()
     private var playerToQueue: MutableMap<Player, Queue> = mutableMapOf()
+    private var kickedPlayers: MutableList<Player> = mutableListOf()
 
     init {
         QueuePlugin.proxyServer = proxyServer
@@ -109,6 +111,11 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
     }
 
     @Subscribe
+    fun onPlayerKickedEvent(event: KickedFromServerEvent) {
+        kickedPlayers.add(event.player)
+    }
+
+    @Subscribe
     fun onPlayerChooseInitialServer(event: PlayerChooseInitialServerEvent) {
         if (config.settings.joinQueue.enabled) {
             event.initialServer.ifPresent { initialServer ->
@@ -145,6 +152,45 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
 
     @Subscribe
     fun onPlayerSwitchServer(event: ServerPreConnectEvent) {
+        if (config.settings.joinQueue.enabled) {
+            if (kickedPlayers.contains(event.player)) {
+                event.result.server.ifPresent { initialServer ->
+                    if (event.player.hasPermission("velocity_queue.skip_join_queue")) return@ifPresent
+                    if (playerToQueue.containsKey(event.player)) {
+                        playerToQueue[event.player]!!.removeUUID(event.player.uniqueId)
+                        playerToQueue.remove(event.player)
+                    }
+                    if (!serverToMaxPlayers.containsKey(initialServer)) {
+                        logger.error("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server.")
+                        event.player.disconnect(Component.text("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server."))
+                        return@ifPresent
+                    }
+                    if (serverToMaxPlayers[initialServer]!! <= initialServer.playersConnected.size) {
+                        if (config.settings.limboServers.isNotEmpty()) {
+                            val limbo = config.settings.limboServers.shuffled()
+                                .take(1)[0] // Take a random limboServer, this should work for load balancing for now.
+                            val server = proxyServer.getServer(limbo.name)
+                            if (server.isPresent) {
+                                event.player.sendMessage(
+                                    MiniMessage.get().parse(
+                                        config.settings.joinQueue.joinedQueueMessage,
+                                        Template.of("playerName", event.player.username),
+                                        Template.of("destServer", initialServer.serverInfo.name)
+                                    )
+                                )
+                                joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer))
+                                playerToQueue[event.player] = joinQueue
+                                event.result = ServerPreConnectEvent.ServerResult.allowed(server.get())
+                                return@ifPresent
+                            }
+                        }
+                        logger.error("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server.")
+                        event.player.disconnect(Component.text("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server."))
+                    }
+                }
+                return
+            }
+        }
         if (config.settings.intraServerQueue.enabled) {
             if (event.player.hasPermission("velocity_queue.skip_intra_queue")) return
             if (playerToServerToSwitch.containsKey(event.player)) {
@@ -173,6 +219,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
 
     @Subscribe
     fun onPlayerLeave(event: DisconnectEvent) {
+        kickedPlayers.remove(event.player)
         if (playerToQueue.containsKey(event.player)) {
             playerToQueue[event.player]!!.removeUUID(event.player.uniqueId)
             playerToQueue.remove(event.player)
