@@ -188,6 +188,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                         event.player.disconnect(Component.text("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server."))
                     }
                 }
+                kickedPlayers.remove(event.player)
                 return
             }
         }
