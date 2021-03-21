@@ -131,6 +131,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                     playerToQueue[event.player]!!.removeUUID(event.player.uniqueId)
                     playerToQueue.remove(event.player)
                 }
+                logger.info(initialServer.serverInfo.name)
                 if (!serverToMaxPlayers.containsKey(initialServer)) {
                     logger.error("E2: No limbo servers are registered, couldn't send ${event.player.username} to a limbo server.")
                     event.player.disconnect(Component.text("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server."))
@@ -219,6 +220,19 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                 event.player.sendMessage(
                     MiniMessage.get().parse(config.settings.intraServerQueue.joinedQueueMessage, Template.of("playerName", event.player.username), Template.of("destServer", server.serverInfo.name))
                 )
+                if (!event.player.currentServer.isPresent) {
+                    if (config.settings.limboServers.isNotEmpty()) {
+                        val limbo = config.settings.limboServers.shuffled().take(1)[0] // Take a random limboServer, this should work for load balancing for now.
+                        val server = proxyServer.getServer(limbo.name)
+                        if (server.isPresent) {
+                            event.result = ServerPreConnectEvent.ServerResult.allowed(server.get())
+                            return
+                        }
+                    }
+                    logger.error("E5: No limbo servers are registered, couldn't send ${event.player.username} to a limbo server.")
+                    event.player.disconnect(Component.text("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server."))
+                    return
+                }
                 event.result = ServerPreConnectEvent.ServerResult.denied()
             }
         }
