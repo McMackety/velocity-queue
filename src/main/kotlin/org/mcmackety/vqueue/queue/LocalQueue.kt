@@ -37,6 +37,15 @@ class LocalQueue : Queue {
         }
     }
 
+    override fun contains(uuid: UUID): Boolean {
+        for (player in players) {
+            if (player.uuid == uuid) {
+                return true
+            }
+        }
+        return false
+    }
+
     override fun broadcastIndexMessage(destinationServer: String, inQueue: String, nextInQueue: String) {
         for (player in players) {
             QueuePlugin.proxyServer.getPlayer(player.uuid).ifPresent { proxyPlayer ->

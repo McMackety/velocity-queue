@@ -17,5 +17,7 @@ interface Queue {
 
     fun next(): QueuePlayer?
 
+    fun contains(uuid: UUID): Boolean
+
     fun broadcastIndexMessage(destinationServer: String, inQueue: String, nextInQueue: String)
 }
