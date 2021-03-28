@@ -36,4 +36,5 @@ settings:
     joinedServerMessage: "<green>You have now joined the server!</green>"
   leftQueueMessage: "<green>You have now left the queue!</green>"
   notInQueueMessage: "<green>You are not currently in a queue!</green>"
+  priorityQueueMultiplier: 100
 ```

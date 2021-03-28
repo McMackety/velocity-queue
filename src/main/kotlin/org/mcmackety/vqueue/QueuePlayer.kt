@@ -12,6 +12,6 @@ data class QueuePlayer(
     val priority: Long
 ) {
     fun getQueueScore(currentTime: Long): Long {
-        return (priority * 100) + (LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - currentTime)
+        return (priority * QueuePlugin.config.settings.priorityQueueMultiplier) + (LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - currentTime)
     }
 }
