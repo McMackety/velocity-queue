@@ -24,6 +24,8 @@ import org.mcmackety.vqueue.queue.Queue
 import org.slf4j.Logger
 import java.io.File
 import java.nio.file.Path
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.concurrent.TimeUnit
 
 @Plugin(id = "velocityqueue", version = "1.0.0-SNAPSHOT", name = "Velocity Queue", authors = ["McMackety"])
@@ -81,32 +83,42 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
         proxyServer.scheduler.buildTask(this) {
             val servers = proxyServer.allServers
             for (server in servers) {
-                server.ping().thenAccept { ping ->
-                    ping.players.ifPresent { players ->
-                        serverToMaxPlayers[server] = players.max
+                try {
+                    server.ping().thenAccept { ping ->
+                        ping.players.ifPresent { players ->
+                            serverToMaxPlayers[server] = players.max
+                        }
                     }
-                }
+                } catch(e: Exception) {}
             }
         }.repeat(5, TimeUnit.SECONDS).schedule()
 
         proxyServer.scheduler.buildTask(this) {
             val next = joinQueue.next()
-            next?.server?.ping()?.thenApply { serverPing: ServerPing ->
-                if (serverPing.players.isPresent && next.server.playersConnected.size + 1 <= serverPing.players.get().max) {
-                    val queuePlayer = proxyServer.getPlayer(next.uuid)
-                    joinQueue.remove(next)
-                    joinQueue.broadcastIndexMessage(
-                        next.server.serverInfo.name,
-                        config.settings.joinQueue.oneLessPlayerInQueueMessage,
-                        config.settings.joinQueue.lastPlayerInQueueMessage
-                    )
-                    queuePlayer.ifPresent { player ->
-                        playerToQueue.remove(player)
-                        player.sendMessage(MiniMessage.get().parse(config.settings.joinQueue.joinedServerMessage, Template.of("playerName", player.username), Template.of("destServer", next.server.serverInfo.name)))
-                        player.createConnectionRequest(next.server).fireAndForget()
+            try {
+                next?.server?.ping()?.thenApply { serverPing: ServerPing ->
+                    if (serverPing.players.isPresent && next.server.playersConnected.size + 1 <= serverPing.players.get().max) {
+                        val queuePlayer = proxyServer.getPlayer(next.uuid)
+                        joinQueue.remove(next)
+                        joinQueue.broadcastIndexMessage(
+                            next.server.serverInfo.name,
+                            config.settings.joinQueue.oneLessPlayerInQueueMessage,
+                            config.settings.joinQueue.lastPlayerInQueueMessage
+                        )
+                        queuePlayer.ifPresent { player ->
+                            playerToQueue.remove(player)
+                            player.sendMessage(
+                                MiniMessage.get().parse(
+                                    config.settings.joinQueue.joinedServerMessage,
+                                    Template.of("playerName", player.username),
+                                    Template.of("destServer", next.server.serverInfo.name)
+                                )
+                            )
+                            player.createConnectionRequest(next.server).fireAndForget()
+                        }
                     }
                 }
-            }
+            } catch(e: Exception) {}
         }.repeat(1, TimeUnit.SECONDS).schedule()
     }
 
@@ -122,6 +134,15 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
         kickedPlayers.add(event.player)
     }
 
+    fun getPlayerPriority(player: Player): Long {
+        for (i in 0..10) {
+            if (player.hasPermission("velocity_queue.priority.$i")) {
+                return i.toLong()
+            }
+        }
+        return 0
+    }
+
     @Subscribe
     fun onPlayerChooseInitialServer(event: PlayerChooseInitialServerEvent) {
         if (config.settings.joinQueue.enabled) {
@@ -131,8 +152,21 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                     playerToQueue[event.player]!!.removeUUID(event.player.uniqueId)
                     playerToQueue.remove(event.player)
                 }
-                logger.info(initialServer.serverInfo.name)
                 if (!serverToMaxPlayers.containsKey(initialServer)) {
+                    if (config.settings.limboServers.isNotEmpty()) {
+                        val limbo = config.settings.limboServers.shuffled().take(1)[0] // Take a random limboServer, this should work for load balancing for now.
+                        val server = proxyServer.getServer(limbo.name)
+                        println(limbo.name)
+                        if (server.isPresent) {
+                            event.player.sendMessage(
+                                MiniMessage.get().parse(config.settings.joinQueue.joinedQueueMessage, Template.of("playerName", event.player.username),  Template.of("destServer", initialServer.serverInfo.name))
+                            )
+                            joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer, LocalDateTime.now(), getPlayerPriority(event.player)))
+                            playerToQueue[event.player] = joinQueue
+                            event.setInitialServer(server.get())
+                            return@ifPresent
+                        }
+                    }
                     logger.error("E2: No limbo servers are registered, couldn't send ${event.player.username} to a limbo server.")
                     event.player.disconnect(Component.text("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server."))
                     return@ifPresent
@@ -145,7 +179,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                             event.player.sendMessage(
                                 MiniMessage.get().parse(config.settings.joinQueue.joinedQueueMessage, Template.of("playerName", event.player.username),  Template.of("destServer", initialServer.serverInfo.name))
                             )
-                            joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer))
+                            joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer, LocalDateTime.now(), getPlayerPriority(event.player)))
                             playerToQueue[event.player] = joinQueue
                             event.setInitialServer(server.get())
                             return@ifPresent
@@ -162,6 +196,16 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
     fun onPlayerSwitchServer(event: ServerPreConnectEvent) {
         if (config.settings.joinQueue.enabled) {
             if (joinQueue.contains(event.player.uniqueId)) {
+                println(config.settings.limboServers.toString())
+                var isLimbo = false
+                for (limbo in config.settings.limboServers) {
+                    if (limbo.name == event.originalServer.serverInfo.name) {
+                        isLimbo = true
+                    }
+                }
+                if (isLimbo) {
+                    return
+                }
                 event.result = ServerPreConnectEvent.ServerResult.denied()
                 return
             }
@@ -173,6 +217,19 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                         playerToQueue.remove(event.player)
                     }
                     if (!serverToMaxPlayers.containsKey(initialServer)) {
+                        if (config.settings.limboServers.isNotEmpty()) {
+                            val limbo = config.settings.limboServers.shuffled().take(1)[0] // Take a random limboServer, this should work for load balancing for now.
+                            val server = proxyServer.getServer(limbo.name)
+                            if (server.isPresent) {
+                                event.player.sendMessage(
+                                    MiniMessage.get().parse(config.settings.joinQueue.joinedQueueMessage, Template.of("playerName", event.player.username),  Template.of("destServer", initialServer.serverInfo.name))
+                                )
+                                joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer, LocalDateTime.now(), getPlayerPriority(event.player)))
+                                playerToQueue[event.player] = joinQueue
+                                event.result = ServerPreConnectEvent.ServerResult.allowed(server.get())
+                                return@ifPresent
+                            }
+                        }
                         logger.error("E3: No limbo servers are registered, couldn't send ${event.player.username} to a limbo server.")
                         event.player.disconnect(Component.text("No limbo servers are registered, couldn't send ${event.player.username} to a limbo server."))
                         return@ifPresent
@@ -185,7 +242,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                                 event.player.sendMessage(
                                     MiniMessage.get().parse(config.settings.joinQueue.joinedQueueMessage, Template.of("playerName", event.player.username),  Template.of("destServer", initialServer.serverInfo.name))
                                 )
-                                joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer))
+                                joinQueue.add(QueuePlayer(event.player.uniqueId, initialServer, LocalDateTime.now(), getPlayerPriority(event.player)))
                                 playerToQueue[event.player] = joinQueue
                                 event.result = ServerPreConnectEvent.ServerResult.allowed(server.get())
                                 return@ifPresent
@@ -215,7 +272,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                 val server = event.result.server.get()
                 initQueuedServer(server)
                 val queue = serverToQueue[server]!!
-                queue.add(QueuePlayer(event.player.uniqueId, server))
+                queue.add(QueuePlayer(event.player.uniqueId, server, LocalDateTime.now(), getPlayerPriority(event.player)))
                 playerToQueue[event.player] = queue
                 event.player.sendMessage(
                     MiniMessage.get().parse(config.settings.intraServerQueue.joinedQueueMessage, Template.of("playerName", event.player.username), Template.of("destServer", server.serverInfo.name))
@@ -279,29 +336,31 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
             proxyServer.scheduler.buildTask(this) {
                 val next = queue.next()
                 if (next != null) {
-                    next.server.ping()?.thenApply { serverPing: ServerPing ->
-                        if (serverPing.players.isPresent && next.server.playersConnected.size + 1 <= serverPing.players.get().max) {
-                            val queuePlayer = proxyServer.getPlayer(next.uuid)
-                            queue.remove(next)
-                            queue.broadcastIndexMessage(
-                                next.server.serverInfo.name,
-                                config.settings.intraServerQueue.oneLessPlayerInQueueMessage,
-                                config.settings.intraServerQueue.lastPlayerInQueueMessage
-                            )
-                            queuePlayer.ifPresent { player ->
-                                playerToQueue.remove(player)
-                                player.sendMessage(
-                                    MiniMessage.get().parse(
-                                        config.settings.intraServerQueue.joinedServerMessage,
-                                        Template.of("playerName", player.username),
-                                        Template.of("destServer", next.server.serverInfo.name)
-                                    )
+                    try {
+                        next.server.ping()?.thenApply { serverPing: ServerPing ->
+                            if (serverPing.players.isPresent && next.server.playersConnected.size + 1 <= serverPing.players.get().max) {
+                                val queuePlayer = proxyServer.getPlayer(next.uuid)
+                                queue.remove(next)
+                                queue.broadcastIndexMessage(
+                                    next.server.serverInfo.name,
+                                    config.settings.intraServerQueue.oneLessPlayerInQueueMessage,
+                                    config.settings.intraServerQueue.lastPlayerInQueueMessage
                                 )
-                                playerToServerToSwitch[player] = server
-                                player.createConnectionRequest(next.server).fireAndForget()
+                                queuePlayer.ifPresent { player ->
+                                    playerToQueue.remove(player)
+                                    player.sendMessage(
+                                        MiniMessage.get().parse(
+                                            config.settings.intraServerQueue.joinedServerMessage,
+                                            Template.of("playerName", player.username),
+                                            Template.of("destServer", next.server.serverInfo.name)
+                                        )
+                                    )
+                                    playerToServerToSwitch[player] = server
+                                    player.createConnectionRequest(next.server).fireAndForget()
+                                }
                             }
                         }
-                    }
+                    } catch (e: Exception) {}
                 }
             }.repeat(config.settings.intraServerQueue.millisecondsPerPlayer.toLong(), TimeUnit.MILLISECONDS)
                 .schedule()

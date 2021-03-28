@@ -4,6 +4,8 @@ import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.Template
 import org.mcmackety.vqueue.QueuePlayer
 import org.mcmackety.vqueue.QueuePlugin
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.*
 
 
@@ -13,6 +15,15 @@ class LocalQueue : Queue {
     override fun add(uuid: QueuePlayer) {
         if (players.contains(uuid)) return
         players.add(uuid)
+    }
+
+    override fun get(uuid: UUID): QueuePlayer? {
+        for (player in players) {
+            if (player.uuid == uuid) {
+                return player
+            }
+        }
+        return null
     }
 
     override fun remove(uuid: QueuePlayer) {
@@ -29,6 +40,7 @@ class LocalQueue : Queue {
     }
 
     override fun next(): QueuePlayer? {
+        reorderPlayers()
         return if (players.size > 0) {
             val player = players[0]
             player
@@ -47,6 +59,7 @@ class LocalQueue : Queue {
     }
 
     override fun broadcastIndexMessage(destinationServer: String, inQueue: String, nextInQueue: String) {
+        reorderPlayers()
         for (player in players) {
             QueuePlugin.proxyServer.getPlayer(player.uuid).ifPresent { proxyPlayer ->
                 val index = players.indexOf(player)
@@ -60,6 +73,12 @@ class LocalQueue : Queue {
                 }
             }
         }
+    }
 
+    private fun reorderPlayers() {
+        val currentTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+        players.sortByDescending {
+            it.getQueueScore(currentTime)
+        }
     }
 }

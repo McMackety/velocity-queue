@@ -11,6 +11,8 @@ interface Queue {
 
     fun add(uuid: QueuePlayer)
 
+    fun get(uuid: UUID): QueuePlayer?
+
     fun remove(uuid: QueuePlayer)
 
     fun removeUUID(uuid: UUID)
