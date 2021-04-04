@@ -9,6 +9,8 @@ data class QueueConfig(
 data class Settings(
     @JsonPropertyDescription("The limbo servers used when in the queue. Must include at least 1 for plugin to work.")
     val limboServers: List<Server> = listOf(Server()),
+    @JsonPropertyDescription("The max players for each server with a queue attached.")
+    val maxPlayersOverride: List<Server> = listOf(Server()),
     @JsonPropertyDescription("These are the settings for the JoinQueue feature. This allows for players to join a limbo when the hub/main server is full.")
     val joinQueue: JoinQueue = JoinQueue(),
     @JsonPropertyDescription("The multiplier for the priority queue score.")
@@ -37,6 +39,8 @@ data class JoinQueue(
     val joinedQueueMessage: String = "",
     @JsonPropertyDescription("The message sent when a player leaves the queue.")
     val oneLessPlayerInQueueMessage: String = "",
+    @JsonPropertyDescription("Time between sending message for player in queue.")
+    val playerInQueueTimePerMessage: Long = 10000,
     @JsonPropertyDescription("The message sent when you are the last player in the queue.")
     val lastPlayerInQueueMessage: String = "",
     @JsonPropertyDescription("The message sent when you joined the server.")
@@ -54,6 +58,8 @@ data class IntraServerQueue(
     val joinedQueueMessage: String = "",
     @JsonPropertyDescription("The message sent when a player leaves the queue.")
     val oneLessPlayerInQueueMessage: String = "",
+    @JsonPropertyDescription("Time between sending message for player in queue.")
+    val playerInQueueTimePerMessage: Long = 10000,
     @JsonPropertyDescription("The message sent when you are the last player in the queue.")
     val lastPlayerInQueueMessage: String = "",
     @JsonPropertyDescription("The message sent when you joined the server.")
