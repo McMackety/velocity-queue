@@ -21,8 +21,8 @@ repositories {
 
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-    implementation 'com.velocitypowered:velocity-api:1.1.2'
-    kapt 'com.velocitypowered:velocity-api:1.1.2'
+    implementation 'com.velocitypowered:velocity-api:1.1.5'
+    kapt 'com.velocitypowered:velocity-api:1.1.5'
 
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.11.+"
 
