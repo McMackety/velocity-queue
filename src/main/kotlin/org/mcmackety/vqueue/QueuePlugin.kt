@@ -29,7 +29,7 @@ import java.time.ZoneOffset
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-@Plugin(id = "velocityqueue", version = "1.0.7-SNAPSHOT", name = "Velocity Queue", authors = ["McMackety"])
+@Plugin(id = "velocityqueue", version = "1.1.1-SNAPSHOT", name = "Velocity Queue", authors = ["McMackety"])
 class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, @DataDirectory dataDirectory: Path) {
     companion object {
         lateinit var proxyServer: ProxyServer
