@@ -198,7 +198,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                         isLimbo = true
                     }
                 }
-                if (isLimbo) {
+                if (isLimbo && event.player.uniqueId == joinQueue.next()?.uuid) {
                     return
                 }
                 event.result = ServerPreConnectEvent.ServerResult.denied()
