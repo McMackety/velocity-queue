@@ -308,7 +308,7 @@ class QueuePlugin @Inject constructor(proxyServer: ProxyServer, logger: Logger, 
                                     player.createConnectionRequest(next.server).connect()
                                         .thenAccept { c: ConnectionRequestBuilder.Result? ->
                                             var tries = playersToTries.getOrPut(next, {AtomicInteger(0)})
-                                            if ((c != null && c.isSuccessful) || tries.get() > 2) {
+                                            if ((c != null && c.isSuccessful) || tries.get() > 2 || (c?.reasonComponent!!.isPresent && c.reasonComponent.get().toString().contains("whitelist", true))) {
                                                 playerToQueue.remove(player)
                                                 queue.remove(next)
                                                 queue.broadcastIndexMessage(
